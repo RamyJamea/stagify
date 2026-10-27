@@ -9,23 +9,20 @@ application scripts. See [extraction details](docs/EXTRACTION.md).
 
 ## Install
 
-Python 3.12 or newer is required. The registry installation command, once this
-release has been published to PyPI, is:
+Python 3.12 or newer is required.
 
 ```powershell
 uv add stagify
+```
+
+For the Gemini Interactions adapter, include the Google extra:
+
+```powershell
 uv add "stagify[google]"
 ```
 
-During release preparation, the source can be installed directly:
-
-```powershell
-uv add "stagify @ git+https://github.com/RamyJamea/stagify.git"
-```
-
-Version 0.1.0 is an initial implementation. See [supported features and
-limitations](docs/STATUS.md); installation from GitHub does not imply that a
-registry release has already been published.
+Version 0.1.0 is available on [PyPI](https://pypi.org/project/stagify/0.1.0/).
+See [supported features and limitations](docs/STATUS.md) for this initial release.
 
 ## Typed stages and tools
 

@@ -5,7 +5,7 @@ from pydantic import BaseModel
 from structlog.testing import capture_logs
 
 from stagify import ModelResponse, RunContext, RunLimits, Runner, Stage, TokenUsage, ToolCall, tool
-from stagify.errors import ConfigurationError, RunLimitExceeded
+from stagify.errors import ConfigurationError
 from stagify.testing import ScriptedProvider
 
 
@@ -126,7 +126,7 @@ def test_provider_retry_budget_is_bounded():
     from stagify.errors import ProviderTransientError
 
     provider = ScriptedProvider(lambda _: ProviderTransientError(retry_after=0))
-    with pytest.raises(RunLimitExceeded) as error:
+    with pytest.raises(ProviderTransientError) as error:
         asyncio.run(
             Runner(provider, limits=RunLimits(max_model_calls=2)).run(
                 Stage("x", "x", Input), {"task": "x"}

@@ -1,5 +1,14 @@
 # Release notes
 
+## 0.1.3
+
+- Stages can select a provider and output-token limit, including substages.
+- Runner request pacing covers retries, children, and compression requests.
+- Stage model-call exhaustion has a distinct `StageModelLimitExceeded` error.
+- Preserve provider failures when retry attempts consume the final call budget.
+
+
+
 ## 0.1.2 · October 27, 2026
 
 Documentation and example update; the staged runtime is unchanged.

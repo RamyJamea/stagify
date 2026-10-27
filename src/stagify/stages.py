@@ -11,6 +11,7 @@ from pydantic import BaseModel
 from .context import ContextPolicies
 from .contracts import ToolSpec
 from .errors import ConfigurationError
+from .providers.base import Provider
 from .tools import Tool, validate_name
 
 InputT = TypeVar("InputT", bound=BaseModel)
@@ -37,6 +38,8 @@ class Stage(Generic[InputT, OutputT]):
     partial_output: Callable[..., Any] | None = None
     verbose: bool | None = None
     resources: frozenset[str] | None = None
+    provider: Provider | None = None
+    max_output_tokens: int | None = None
 
     def __post_init__(self) -> None:
         validate_name(self.name)
@@ -50,6 +53,8 @@ class Stage(Generic[InputT, OutputT]):
             raise ConfigurationError("Duplicate or reserved tool name")
         if self.max_model_calls is not None and self.max_model_calls < 1:
             raise ConfigurationError("max_model_calls must be positive")
+        if self.max_output_tokens is not None and self.max_output_tokens < 1:
+            raise ConfigurationError("max_output_tokens must be positive")
         if self.max_completion_repairs < 0:
             raise ConfigurationError("max_completion_repairs cannot be negative")
         if self.timeout_seconds is not None and self.timeout_seconds <= 0:

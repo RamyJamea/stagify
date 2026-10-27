@@ -8,7 +8,7 @@ from uuid import uuid4
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
-from .errors import RunLimitExceeded
+from .errors import RunLimitExceeded, StageModelLimitExceeded
 
 Purpose = Literal["agent", "summarize", "extract", "repair"]
 
@@ -75,7 +75,7 @@ class UsageLedger:
             raise RunLimitExceeded("Run model-call limit reached")
         local = sum(r.stage_id == stage_id for r in self.requests)
         if local_limit is not None and local >= local_limit:
-            raise RunLimitExceeded("Stage model-call limit reached")
+            raise StageModelLimitExceeded("Stage model-call limit reached")
         record = UsageRecord(stage_id, ancestors, purpose, provider)
         self.requests.append(record)
         return record

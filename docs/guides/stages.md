@@ -54,3 +54,23 @@ For a fixed sequence, call `runner.run` twice and pass the first result's output
 For model-selected delegation, use [a stage as a tool](substages.md). Stage definitions can be reused; invocation histories and IDs are created per execution.
 
 See [the stage API](../reference/runtime.md) for every constructor option.
+
+
+## Stage providers and execution limits
+
+`Stage(provider=...)` selects a provider for that stage, including when invoked
+through `as_tool()`. Otherwise the runner's provider is used. The application
+owns and closes stage-specific providers. `Stage(max_output_tokens=...)` bounds
+that stage's response together with the runner and provider limits.
+
+`Runner(min_interval_seconds=...)` waits before every provider attempt, including
+retries, child requests and context summarization. It is per-run pacing, not a
+distributed rate limiter.
+
+`StageModelLimitExceeded` identifies exhaustion of a stage's own model-call
+allocation. A final response without typed completion also raises this error;
+an early unsubmitted response remains `ProviderOutputError`. Invalid submissions
+remain completion errors. Child exhaustion is wrapped in `SubstageError`.
+
+Provider failures on the last allowed attempt retain their provider error type,
+even when `allow_partial=True`. They cannot become partial budget results.

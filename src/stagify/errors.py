@@ -76,6 +76,12 @@ class RunLimitExceeded(StagifyError):
     code = "run_limit_exceeded"
 
 
+class StageModelLimitExceeded(RunLimitExceeded):
+    """The current stage consumed its own model-call allocation."""
+
+    code = "stage_model_limit_exceeded"
+
+
 class StageTimeoutError(StagifyError):
     code = "stage_timeout"
 

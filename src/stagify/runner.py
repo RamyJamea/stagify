@@ -38,6 +38,7 @@ from .errors import (
     RunLimitExceeded,
     StageCompletionError,
     StageExecutionError,
+    StageModelLimitExceeded,
     StageTimeoutError,
     StagifyError,
     StateConflictError,
@@ -100,7 +101,11 @@ class Runner:
         context_policies: ContextPolicies | None = None,
         verbose: bool = False,
         logger: Any = None,
+        min_interval_seconds: float = 0,
     ):
+        if not math.isfinite(min_interval_seconds) or min_interval_seconds < 0:
+            raise ConfigurationError("min_interval_seconds must be finite and nonnegative")
+        self.min_interval_seconds = min_interval_seconds
         self.provider = provider
         self.limits = limits or RunLimits()
         self.context_policies = context_policies or ContextPolicies()
@@ -165,6 +170,7 @@ class Runner:
         parent_resources: frozenset[str] | None,
         inherited_verbose: bool | None,
     ) -> StageResult[Any]:
+        provider = stage.provider if stage.provider is not None else self.provider
         invocation = uuid4().hex
         parent = ancestors[-1] if ancestors else None
         history: list[Message] = []
@@ -281,9 +287,10 @@ class Runner:
                     "\nSubmit the final result with complete_stage, alone in its response."
                 )
             history.append(Message("user", payload))
-            capabilities = getattr(self.provider, "capabilities", ProviderCapabilities())
+            capabilities = getattr(provider, "capabilities", ProviderCapabilities())
             output_limit = min(
                 self.limits.max_output_tokens,
+                stage.max_output_tokens or self.limits.max_output_tokens,
                 capabilities.max_output_tokens or self.limits.max_output_tokens,
             )
             budget = min(
@@ -325,7 +332,7 @@ class Runner:
                             "Rendered provider request exceeds its allocation"
                         )
                     record = run.ledger.start_request(
-                        invocation, ancestors, purpose, self.provider.name, stage.max_model_calls
+                        invocation, ancestors, purpose, provider.name, stage.max_model_calls
                     )
                     event(
                         "provider.request",
@@ -334,9 +341,11 @@ class Runner:
                         attempt=retry + 1,
                     )
                     try:
-                        response = await self.provider.generate(current_request)
+                        if self.min_interval_seconds:
+                            await asyncio.sleep(self.min_interval_seconds)
+                        response = await provider.generate(current_request)
                     except ProviderTransientError as exc:
-                        if retry == self.limits.max_model_retries:
+                        if retry == self.limits.max_model_retries or remaining <= 1:
                             raise
                         delay = (
                             exc.retry_after
@@ -426,6 +435,10 @@ class Runner:
                                 stage, response.text.strip(), stage_context
                             )
                             return finish("completed", response.text.strip())
+                        if stage.output_model is not None and stage.max_model_calls is not None:
+                            own_calls = sum(r.stage_id == invocation for r in run.ledger.requests)
+                            if own_calls >= stage.max_model_calls:
+                                raise StageModelLimitExceeded("Stage model-call limit reached")
                         raise ProviderOutputError("Stage ended without a valid completion")
                     for call in calls:
                         run.ledger.start_tool(invocation, ancestors)

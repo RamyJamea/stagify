@@ -1,5 +1,14 @@
 # Release notes
 
+## 0.1.1 · October 27, 2026
+
+Branding and documentation release. The staged runtime is unchanged from 0.1.0.
+
+- Adopt the supplied penguin crew artwork in the repository, package description, and documentation.
+- Add a transparent logo derivative while retaining the original artwork.
+- Restyle documentation in black, white, and neutral grays, with light/dark themes, top-level navigation, sidebars, and a page outline.
+- Include the documentation URL in package metadata and refresh the PyPI README.
+
 ## Documentation updates · October 27, 2026
 
 The documentation site adds a credential-free quickstart, cleaner and long-loop tutorials, conceptual and operational guides, and a source-generated API reference. Included offline examples and strict site builds are checked in CI. These documentation changes do not alter the published 0.1.0 runtime.

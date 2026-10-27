@@ -1,14 +1,24 @@
 <div class="hero" markdown>
+<div class="hero-copy" markdown>
 
-<span class="eyebrow">Stagify · Python framework · v0.1.0</span>
+<span class="eyebrow">Stagify · Python framework · v0.1.1</span>
 
 # Give every stage the context it needs.
 
 Build agent workflows with typed tools, isolated substages, and explicit context policies. Keep original evidence available while long tool loops use smaller request views.
 
-[Get started](getting-started/quickstart.md){ .md-button .md-button--primary }
-[Explore context management](guides/context-management.md){ .md-button }
+<div class="hero-actions" markdown>
 
+[Get started](getting-started/quickstart.md){ .md-button .md-button--primary }
+[Explore context](guides/context-management.md){ .md-button }
+
+</div>
+</div>
+<div class="hero-art" markdown>
+
+![The Stagify crew: four hand-drawn penguins working together.](assets/brand/stagify-mark.png){ width="420" height="350" }
+
+</div>
 </div>
 
 ```bash
@@ -54,6 +64,6 @@ Start with [a stage that runs without API credentials](getting-started/quickstar
 
 ## Know the boundaries
 
-Stagify 0.1.0 is an alpha release. State is in memory, token sizing is estimated, and Gemini Interactions is the only bundled model adapter. Summaries can lose information; evidence references establish provenance, not the truth of a model's claims. Read the [supported features and limitations](STATUS.md) before designing a deployment.
+Stagify 0.1.1 is an alpha release. State is in memory, token sizing is estimated, and Gemini Interactions is the only bundled model adapter. Summaries can lose information; evidence references establish provenance, not the truth of a model's claims. Read the [supported features and limitations](STATUS.md) before designing a deployment.
 
 Stage context, compression, and protected information also exist in other frameworks. Stagify brings them together through explicit stage contracts, evidence revisions, and usage accounting. The [prior-art notes](RESEARCH.md) explain the overlap.

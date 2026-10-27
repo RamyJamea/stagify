@@ -7,24 +7,28 @@ edit_uri: edit/main/docs/
 copyright: Stagify · MIT license
 theme:
   name: material
+  logo: assets/brand/stagify-mark.png
+  favicon: assets/brand/stagify-original.jpg
   font: false
   icon:
-    logo: material/layers-triple
     repo: fontawesome/brands/github
   palette:
     - scheme: default
       primary: custom
-      accent: teal
+      accent: custom
       toggle:
         icon: material/weather-night
         name: Switch to dark mode
     - scheme: slate
       primary: custom
-      accent: teal
+      accent: custom
       toggle:
         icon: material/weather-sunny
         name: Switch to light mode
   features:
+    - navigation.tabs
+    - navigation.tabs.sticky
+    - navigation.path
     - navigation.sections
     - navigation.indexes
     - navigation.top
@@ -73,11 +77,11 @@ validation:
     anchors: warn
 nav:
   - Overview: index.md
-  - Start here:
+  - Learn:
       - Installation: getting-started/installation.md
       - Your first stage: getting-started/quickstart.md
       - Core concepts: getting-started/concepts.md
-  - Build workflows:
+  - Guides:
       - Stages and context contracts: guides/stages.md
       - Define tools: guides/tools.md
       - Stages as tools: guides/substages.md
@@ -86,13 +90,13 @@ nav:
   - Tutorials:
       - Analysis with a cleaner: tutorials/analysis-with-cleaner.md
       - A long tool loop: tutorials/long-tool-loop.md
-  - Run in production:
+  - Operations:
       - Providers and Gemini: guides/providers.md
       - Token usage: guides/usage.md
       - Structured logging: guides/logging.md
       - Errors and limits: guides/errors.md
       - Troubleshooting: guides/troubleshooting.md
-  - API reference:
+  - Reference:
       - Runner, stages, tools: reference/runtime.md
       - Policies and limits: reference/policies.md
       - Context and evidence: reference/state.md

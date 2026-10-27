@@ -1,6 +1,6 @@
 # Runner, stages, and tools
 
-These signatures are generated from the checked-in Python source. Guides explain behavior; this reference lists the actual types and defaults for the current `0.1.0` API.
+These signatures are generated from the checked-in Python source. Guides explain behavior; this reference lists the actual types and defaults for the current `0.1.1` API.
 
 ## Runner
 

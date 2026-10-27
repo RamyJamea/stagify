@@ -18,7 +18,7 @@ Verify the installed distribution:
 uv run python -c "from importlib.metadata import version; print(version('stagify'))"
 ```
 
-The current release is `0.1.0`. For an application that must stay on this release, use `uv add "stagify==0.1.0"` and commit `uv.lock`.
+The current release is `0.1.1`. For an application that must stay on this release, use `uv add "stagify==0.1.1"` and commit `uv.lock`.
 
 ## Add Gemini support
 

@@ -1,0 +1,5 @@
+# Background removal
+
+Tool: built-in image_gen. Input: user-supplied stagify_icon.jpg. Output: transparent PNG.
+
+Use case: background-extraction. Edit target: the supplied stagify_icon.jpg, a black-and-white hand-drawn group of FOUR penguins, three holding drinks, one front-center. This exact user artwork is the new Stagify logo. Remove ONLY the plain white OUTER background around the group and the blank border; produce a genuinely transparent PNG. Preserve the original FOUR penguins, poses, drinks, straw shapes, linework, uneven hand-drawn character, facial expressions, proportions, solid black regions, white interior bodies and faces, and all enclosed white details. Do not redesign, modernize, smooth into a generic vector, stylize, add letters, add text, add shadows, add colors, add a container, or crop any penguin, feet, cup or straw. Keep small white body regions opaque; only surrounding paper background becomes alpha. Center the complete group with a narrow comfortable transparent margin for a website logo. Black ink and white interior fills only; original geometry as faithful as possible.

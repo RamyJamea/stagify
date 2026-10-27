@@ -1,7 +1,7 @@
 # Implementation status
 
-Version 0.1.0 is the first implemented release and is published on
-[PyPI](https://pypi.org/project/stagify/0.1.0/). Install it with `uv add stagify`.
+Version 0.1.1 is the current alpha release, with the same runtime as 0.1.0, published on
+[PyPI](https://pypi.org/project/stagify/0.1.1/). Install it with `uv add stagify`.
 
 Implemented:
 

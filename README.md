@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="https://raw.githubusercontent.com/RamyJamea/stagify/v0.1.1/docs/assets/brand/stagify-original.jpg" width="280" alt="Stagify: a hand-drawn crew of four penguins">
+</p>
+
 # Stagify
 
 Staged agent workflows with explicit context management.
@@ -9,7 +13,7 @@ using optional artifact offloading and historical summaries.
 **[Documentation](https://ramyjamea.github.io/stagify/)** ·
 [Quickstart](https://ramyjamea.github.io/stagify/getting-started/quickstart/) ·
 [PyPI](https://pypi.org/project/stagify/) ·
-[Examples](examples/)
+[Examples](https://github.com/RamyJamea/stagify/tree/v0.1.1/examples)
 
 ## Install
 
@@ -71,11 +75,11 @@ Both tutorials run without model credentials and include assertions.
 
 ## Current scope
 
-Version 0.1.0 is an alpha release. State is in memory, request token sizing is
+Version 0.1.1 is an alpha release. State is in memory, request token sizing is
 estimated, and only the Gemini Interactions model adapter ships. Summaries can
 lose information; evidence references do not establish semantic truth. See the
-[supported features and limitations](docs/STATUS.md) and
-[prior-art notes](docs/RESEARCH.md).
+[supported features and limitations](https://ramyjamea.github.io/stagify/STATUS/) and
+[prior-art notes](https://ramyjamea.github.io/stagify/RESEARCH/).
 
 ## Develop and contribute
 
@@ -88,11 +92,11 @@ uv run --group docs python scripts/check_docs.py
 uv run --group docs mkdocs serve
 ```
 
-See [contributing](docs/contributing.md) for checks, documentation authoring, and
+See [contributing](https://ramyjamea.github.io/stagify/contributing/) for checks, documentation authoring, and
 GitHub Pages deployment. Package CI checks Linux/Windows and Python 3.12–3.14.
 Documentation CI executes the included offline examples and builds the site in
 strict mode. Live model calls are excluded from CI.
 
 ## License
 
-[MIT](LICENSE).
+[MIT](https://github.com/RamyJamea/stagify/blob/v0.1.1/LICENSE).

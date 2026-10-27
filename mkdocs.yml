@@ -1,0 +1,107 @@
+site_name: Stagify
+site_description: Build staged agent workflows with explicit context, evidence, and token accounting.
+site_url: https://ramyjamea.github.io/stagify/
+repo_url: https://github.com/RamyJamea/stagify
+repo_name: RamyJamea/stagify
+edit_uri: edit/main/docs/
+copyright: Stagify · MIT license
+theme:
+  name: material
+  font: false
+  icon:
+    logo: material/layers-triple
+    repo: fontawesome/brands/github
+  palette:
+    - scheme: default
+      primary: custom
+      accent: teal
+      toggle:
+        icon: material/weather-night
+        name: Switch to dark mode
+    - scheme: slate
+      primary: custom
+      accent: teal
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to light mode
+  features:
+    - navigation.sections
+    - navigation.indexes
+    - navigation.top
+    - navigation.footer
+    - search.suggest
+    - search.highlight
+    - content.code.copy
+    - content.action.edit
+extra_css:
+  - stylesheets/extra.css
+plugins:
+  - search
+  - mkdocstrings:
+      handlers:
+        python:
+          paths: [src]
+          options:
+            show_root_heading: true
+            show_root_full_path: false
+            show_source: false
+            show_signature_annotations: true
+            separate_signature: true
+            members_order: source
+            inherited_members: false
+            show_if_no_docstring: true
+            filters: ["!^_"]
+markdown_extensions:
+  - admonition
+  - attr_list
+  - md_in_html
+  - tables
+  - toc:
+      permalink: true
+  - pymdownx.details
+  - pymdownx.superfences
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.snippets:
+      base_path: ["."]
+      check_paths: true
+validation:
+  nav:
+    omitted_files: warn
+  links:
+    not_found: warn
+    anchors: warn
+nav:
+  - Overview: index.md
+  - Start here:
+      - Installation: getting-started/installation.md
+      - Your first stage: getting-started/quickstart.md
+      - Core concepts: getting-started/concepts.md
+  - Build workflows:
+      - Stages and context contracts: guides/stages.md
+      - Define tools: guides/tools.md
+      - Stages as tools: guides/substages.md
+      - Context policies: guides/context-management.md
+      - Evidence and working memory: guides/evidence-memory.md
+  - Tutorials:
+      - Analysis with a cleaner: tutorials/analysis-with-cleaner.md
+      - A long tool loop: tutorials/long-tool-loop.md
+  - Run in production:
+      - Providers and Gemini: guides/providers.md
+      - Token usage: guides/usage.md
+      - Structured logging: guides/logging.md
+      - Errors and limits: guides/errors.md
+      - Troubleshooting: guides/troubleshooting.md
+  - API reference:
+      - Runner, stages, tools: reference/runtime.md
+      - Policies and limits: reference/policies.md
+      - Context and evidence: reference/state.md
+      - Providers and messages: reference/providers.md
+      - Results and usage: reference/results.md
+      - Errors: reference/errors.md
+  - Project:
+      - Supported features: STATUS.md
+      - Contributing: contributing.md
+      - Release notes: changelog.md
+      - Design provenance: EXTRACTION.md
+      - Prior art: RESEARCH.md

@@ -23,6 +23,7 @@ classifiers = [
 ]
 
 [project.urls]
+Documentation = "https://ramyjamea.github.io/stagify/"
 Repository = "https://github.com/RamyJamea/stagify"
 Issues = "https://github.com/RamyJamea/stagify/issues"
 
@@ -39,6 +40,11 @@ build-backend = "uv_build"
 dev = [
     "pytest>=8,<10",
     "ruff>=0.12,<1",
+]
+docs = [
+    "mkdocs>=1.6,<2",
+    "mkdocs-material>=9.6,<10",
+    "mkdocstrings[python]>=1.0.8,<2",
 ]
 
 [tool.ruff]

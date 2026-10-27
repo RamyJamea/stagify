@@ -18,3 +18,5 @@ htmlcov/
 *.pem
 *.key
 .stagify/
+
+site/

@@ -1,7 +1,7 @@
 <div class="hero" markdown>
 <div class="hero-copy" markdown>
 
-<span class="eyebrow">Stagify · Python framework · v0.1.1</span>
+<span class="eyebrow">Stagify · Python framework · v0.1.2</span>
 
 # Give every stage the context it needs.
 
@@ -60,10 +60,10 @@ Inspect stage and descendant token usage, shared limits, typed failures, and str
 
 ## Follow a complete workflow
 
-Start with [a stage that runs without API credentials](getting-started/quickstart.md). Then follow [analysis with a cleaner](tutorials/analysis-with-cleaner.md) and [a long tool loop](tutorials/long-tool-loop.md), which demonstrates offloading, summarization, and a policies-disabled comparison. Connect [Gemini Interactions](guides/providers.md) when you are ready to use a model.
+Start with [your first Gemini stage](getting-started/quickstart.md). Then follow [analysis with a cleaner](tutorials/analysis-with-cleaner.md) and [a long tool loop](tutorials/long-tool-loop.md), which demonstrates offloading, summarization, and a policies-disabled comparison. Connect [Gemini Interactions](guides/providers.md) when you are ready to use a model.
 
 ## Know the boundaries
 
-Stagify 0.1.1 is an alpha release. State is in memory, token sizing is estimated, and Gemini Interactions is the only bundled model adapter. Summaries can lose information; evidence references establish provenance, not the truth of a model's claims. Read the [supported features and limitations](STATUS.md) before designing a deployment.
+Stagify 0.1.2 is an alpha release. State is in memory, token sizing is estimated, and Gemini Interactions is the only bundled model adapter. Summaries can lose information; evidence references establish provenance, not the truth of a model's claims. Read the [supported features and limitations](STATUS.md) before designing a deployment.
 
 Stage context, compression, and protected information also exist in other frameworks. Stagify brings them together through explicit stage contracts, evidence revisions, and usage accounting. The [prior-art notes](RESEARCH.md) explain the overlap.

@@ -1,29 +1,28 @@
-# A long tool loop
+# A long tool loop with Gemini
 
-Keep a long analysis loop within an input allocation while retaining exact observations. This tutorial combines a cleaner substage, twelve large batch reads, artifact offloading, historical summaries, current working memory, and an exact final calculation.
+Use `gemini-3.8-flash` with a cleaner substage, large batch reads, artifact offloading, history summaries, working memory, and an exact final calculation. The code uses Gemini Interactions; an offline mode replays simulated Interactions responses through the real SDK.
 
-The provider is deterministic and the data is synthetic. It demonstrates runtime behavior; it does not measure a model's reasoning quality or prove comparative accuracy.
+## Run with Gemini
 
-## Run the comparison
-
-Install `stagify`, save the complete source below as `long_tool_loop.py`, and run:
+Install `stagify[google]`, set `GEMINI_API_KEY`, save the source below as `long_tool_loop.py`, and run:
 
 ```bash
 uv run python long_tool_loop.py
 ```
 
-The enabled run completes with `Total sales: 1830.0 across 60 rows.` It prints the child count, compaction count, summary-call count, and synthetic usage. The disabled run uses fresh data and the same request allocation, then stops with `ContextBudgetExceeded` as expected.
+This runs an enabled-policy analysis and a fresh policies-disabled comparison. Both use your provider account in live mode. Request counts, summary quality, and token usage depend on the model's choices.
 
-## What the example proves
+## Simulated response sequence
 
-1. The cleaner receives only its typed task and normalizes 60 rows through a declared writer.
-2. Each batch returns five rows with deliberately long notes. Original outputs remain in canonical history and the evidence store.
-3. The request compiler substitutes small previews and evidence IDs for those large batch outputs.
-4. Older complete tool batches are summarized when the estimated request reaches its configured trigger. Two recent batches remain exact in the request view.
-5. The final calculation reads the current resource using `Decimal`. The summary is not used as the source of the numeric answer.
-6. A current `revenue` finding is required before analysis completes. Summary requests and cleaner requests appear in inclusive usage.
+The replay fixture selects these tool calls for `gemini-3.8-flash`:
 
-The source asserts each behavior, including the presence of actual compactions and offloaded request messages. CI executes this same file; the documentation includes it directly.
+1. Analysis calls `clean_data`; the cleaner calls `normalize`, then submits completion.
+2. Analysis calls `read_batch` for offsets 0, 5, 10, …, 55, reading all 60 rows.
+3. Large results enter later requests as previews and evidence IDs. The compiler requests a historical summary when its configured threshold is reached.
+4. Analysis calls `compute_total`, which calculates `1830.0` using `Decimal` from the current resource.
+5. Analysis saves a current `revenue` finding and submits the final report.
+
+The simulated report is `Total sales: 1830.0 across 60 rows.` The fixture verifies that at least one summary request and offloaded result occurred. The disabled comparison exceeds the same input allocation. These are simulation results, not a model quality or savings benchmark.
 
 ## Complete source
 
@@ -31,10 +30,21 @@ The source asserts each behavior, including the presence of actual compactions a
 --8<-- "examples/long_tool_loop.py"
 ```
 
-## Adapt it to real models
+## Run without live API requests
 
-Replace the scripted provider with [Gemini Interactions](../guides/providers.md). In this tutorial the script chooses exactly twelve batches; with a real model, your prompts, schemas, and completion validator must enforce the required coverage. A summary alone cannot prove every row was inspected.
+From a source checkout:
 
-For larger datasets, prefer tools that return useful bounded aggregates or pages from the start. Offloading retains the large result in process memory. Use evidence pointers for exact values and recompute findings after resource changes.
+```bash
+uv sync --locked --all-extras
+uv run python scripts/simulate_gemini.py examples/long_tool_loop.py
+```
 
-Use the [policy guide](../guides/context-management.md) to tune thresholds. Token estimates and these synthetic counters are not actual provider billing or a savings benchmark.
+The simulator replaces HTTP transport, while the Google SDK still serializes requests, parses responses, replays thought/tool steps, and supplies usage to Stagify. Its banner and output identify fixture counters as simulated.
+
+## Enforce coverage and preserve evidence
+
+The completion validator checks exact batch evidence to ensure all 60 rows were read at the current resource revision. A historical summary alone cannot prove row coverage. The final calculation reads current data directly; it does not calculate from a model-written summary.
+
+Original results stay in canonical history and process-local evidence storage. With a real model, a run can fail a limit or completion check; summaries and output wording are not deterministic. For larger datasets, return useful bounded aggregates or pages from the start and retrieve exact fields through evidence pointers.
+
+See [context policies](../guides/context-management.md) for thresholds and precedence. Token sizing is estimated, and simulation counters are not actual provider billing.

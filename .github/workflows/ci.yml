@@ -35,8 +35,8 @@ jobs:
         run: uv run --locked pytest -q
       - name: Offline examples
         run: |
-          uv run --locked python examples/basic.py
-          uv run --locked python examples/analysis_with_cleaner.py
+          uv run --locked python scripts/simulate_gemini.py examples/basic.py
+          uv run --locked python scripts/simulate_gemini.py examples/analysis_with_cleaner.py
       - name: Build distributions
         run: uv build --no-sources
       - name: Verify archives and isolated wheel installation

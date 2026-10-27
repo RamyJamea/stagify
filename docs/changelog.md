@@ -1,5 +1,15 @@
 # Release notes
 
+## 0.1.2 · October 27, 2026
+
+Documentation and example update; the staged runtime is unchanged.
+
+- Use `GoogleProvider` with `gemini-3.8-flash` in the README and tutorials.
+- Omit deprecated sampling parameters in Gemini 3.8 examples.
+- Show labeled simulated Gemini responses and validate examples with the real SDK over mock HTTP transport.
+- Check long-loop row coverage from current evidence before completion.
+- Use the cropped, background-removed penguin PNG as the documentation favicon.
+
 ## 0.1.1 · October 27, 2026
 
 Branding and documentation release. The staged runtime is unchanged from 0.1.0.

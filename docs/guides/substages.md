@@ -27,7 +27,7 @@ analysis = Stage(
 )
 ```
 
-This minimal definition demonstrates the boundary; add application tools to perform preparation. The [cleaner tutorial](../tutorials/analysis-with-cleaner.md) includes an actual resource mutation and a complete runnable provider script.
+This minimal definition demonstrates the boundary; add application tools to perform preparation. The [cleaner tutorial](../tutorials/analysis-with-cleaner.md) includes an actual resource mutation and a complete Gemini example with simulated-response replay.
 
 ## Isolation and sharing
 

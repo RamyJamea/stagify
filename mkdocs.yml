@@ -8,7 +8,7 @@ copyright: Stagify · MIT license
 theme:
   name: material
   logo: assets/brand/stagify-mark.png
-  favicon: assets/brand/stagify-original.jpg
+  favicon: assets/brand/stagify-mark.png
   font: false
   icon:
     repo: fontawesome/brands/github

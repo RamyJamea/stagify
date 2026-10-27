@@ -1,11 +1,12 @@
-"""Two typed stages with an explicit handoff; no API key required."""
+"""Two typed Gemini stages with an explicit handoff."""
 
 import asyncio
+import os
 
 from pydantic import BaseModel
 
-from stagify import ModelResponse, Runner, Stage, TokenUsage, ToolCall
-from stagify.testing import ScriptedProvider
+from stagify import RunLimits, Runner, Stage
+from stagify.providers.google import GoogleProvider
 
 
 class Request(BaseModel):
@@ -16,23 +17,21 @@ class Reply(BaseModel):
     text: str
 
 
-def respond(request):
-    value = request.messages[0].content["text"]
-    return ModelResponse(
-        calls=(ToolCall("finish", "complete_stage", {"text": value.upper()}),),
-        usage=TokenUsage(input_tokens=100, output_tokens=20),
-    )
-
-
 async def main():
-    runner = Runner(ScriptedProvider(respond))
-    draft = Stage("draft", "Draft the text.", Request, Reply)
-    review = Stage("review", "Review the text.", Request, Reply)
-    first = await runner.run(draft, {"text": "hello stagify"})
-    second = await runner.run(review, {"text": first.output.text})
-    assert second.output.text == "HELLO STAGIFY"
-    print(second.output.text)
-    print("Synthetic example usage:", second.usage.total.model_dump())
+    draft = Stage("draft", "Convert the supplied text to uppercase.", Request, Reply)
+    review = Stage("review", "Return the supplied uppercase text unchanged.", Request, Reply)
+    async with GoogleProvider(
+        model="gemini-3.8-flash",
+        api_key=os.environ["GEMINI_API_KEY"],
+        temperature=None,
+        top_p=None,
+    ) as provider:
+        runner = Runner(provider, limits=RunLimits(max_model_calls=8, timeout_seconds=60))
+        first = await runner.run(draft, {"text": "hello stagify"})
+        second = await runner.run(review, {"text": first.output.text})
+        assert second.output.text == "HELLO STAGIFY"
+        print(second.output.text)
+        print("Review stage Gemini usage:", second.usage.total.model_dump())
 
 
 if __name__ == "__main__":

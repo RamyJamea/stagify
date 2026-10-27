@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import ast
+import json
 import re
 import subprocess
 import sys
@@ -11,7 +12,11 @@ from pathlib import Path
 import stagify
 
 ROOT = Path(__file__).resolve().parents[1]
-CREDENTIAL_EXAMPLES = {"examples/gemini.py"}
+GEMINI_EXAMPLES = {
+    "examples/gemini.py",
+    "examples/analysis_with_cleaner.py",
+    "examples/long_tool_loop.py",
+}
 SNIPPET = re.compile(r'^\s*--8<-- "([^"]+)"\s*$', re.MULTILINE)
 PYTHON_FENCE = re.compile(r"^```python[^\n]*\n(.*?)^```", re.MULTILINE | re.DOTALL)
 
@@ -19,8 +24,10 @@ PYTHON_FENCE = re.compile(r"^```python[^\n]*\n(.*?)^```", re.MULTILINE | re.DOTA
 def main() -> None:
     examples: set[str] = set()
     fences = 0
-    for path in sorted((ROOT / "docs").rglob("*.md")):
+    for path in [ROOT / "README.md", *sorted((ROOT / "docs").rglob("*.md"))]:
         source = path.read_text(encoding="utf-8")
+        for block in re.finditer(r"^```json[^\n]*\n(.*?)^```", source, re.MULTILINE | re.DOTALL):
+            json.loads(block[1])
         for match in SNIPPET.finditer(source):
             relative = match[1]
             target = (ROOT / relative).resolve()
@@ -47,13 +54,17 @@ def main() -> None:
     missing = set(stagify.__all__) - documented
     if missing:
         raise RuntimeError(f"Public API missing from reference: {sorted(missing)}")
-    if not CREDENTIAL_EXAMPLES <= examples:
-        raise RuntimeError("Credential example list must match documented includes")
-    for relative in sorted(examples - CREDENTIAL_EXAMPLES):
-        subprocess.run([sys.executable, str(ROOT / relative)], cwd=ROOT, check=True, timeout=30)
+    if not GEMINI_EXAMPLES <= examples:
+        raise RuntimeError("Gemini simulation list must match documented includes")
+    for relative in sorted(examples):
+        command = [sys.executable]
+        if relative in GEMINI_EXAMPLES:
+            command.append(str(ROOT / "scripts/simulate_gemini.py"))
+        command.append(str(ROOT / relative))
+        subprocess.run(command, cwd=ROOT, check=True, timeout=60)
         print(f"Verified example: {relative}", flush=True)
     print(f"Parsed {fences} Python fences; documented {len(stagify.__all__)} public exports.")
-    print("Credential-dependent Gemini example parsed; live calls intentionally excluded.")
+    print("Gemini examples verified with simulated Interactions HTTP responses; no live calls.")
 
 
 if __name__ == "__main__":

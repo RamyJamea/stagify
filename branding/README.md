@@ -7,7 +7,7 @@ Assets under `docs/assets/brand/`:
 
 - `stagify-original.jpg`: the supplied artwork, preserved without modification.
 - `stagify-mark.png`: a transparent-background derivative for the documentation
-  header and homepage, created with the built-in image-generation editor.
+  header, favicon, and homepage, created with the built-in image-generation editor.
 
 The transparent asset retains white interiors. Display it on a white surface so
 the black outlines and all four penguins remain legible in either site theme.

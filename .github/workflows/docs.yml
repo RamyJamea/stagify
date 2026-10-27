@@ -4,10 +4,12 @@ on:
   push:
     branches: [main]
     paths:
+      - "README.md"
       - "docs/**"
       - "examples/**"
       - "src/**"
       - "scripts/check_docs.py"
+      - "scripts/simulate_gemini.py"
       - "mkdocs.yml"
       - "pyproject.toml"
       - "uv.lock"
@@ -36,9 +38,9 @@ jobs:
           version: "0.9.7"
           python-version: "3.12"
       - name: Install documentation dependencies
-        run: uv sync --locked --group docs
-      - name: Verify documented code and offline examples
-        run: uv run --locked --group docs python scripts/check_docs.py
+        run: uv sync --locked --all-extras --group docs
+      - name: Verify documented code with simulated Gemini responses
+        run: uv run --locked --all-extras --group docs python scripts/check_docs.py
       - name: Build with strict link and API checks
         run: uv run --locked --group docs mkdocs build --strict
       - name: Upload Pages artifact

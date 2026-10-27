@@ -1,29 +1,31 @@
 # Analysis with a cleaner
 
-Build a parent analysis stage that delegates normalization, calculates an exact total, and saves a finding backed by current evidence. This example uses two sales rows and a scripted provider, so it needs no API key.
+Use `gemini-3.8-flash` to delegate normalization to a cleaner stage, calculate an exact total, and save a finding backed by current evidence. Both stages use Gemini Interactions with separate local transcripts.
 
-## Run it
+## Run with Gemini
 
-Install `stagify`, save the complete source below as `analysis_with_cleaner.py`, and run:
+Install `stagify[google]`, set `GEMINI_API_KEY`, save the source below as `analysis_with_cleaner.py`, and run:
 
 ```bash
 uv run python analysis_with_cleaner.py
 ```
 
-The report is `Total sales are 24.0 across both rows.` The example also prints synthetic usage and asserts the resulting revision, memory, child count, and request count.
+The application prints the report and returned Gemini usage. The data has two rows totaling `24.0`; wording, tool choices, request count, and usage can vary in a real run.
 
-## Follow the boundaries
+## Simulated Gemini walkthrough
 
-| Step | Stage | Operation | Context and state |
+This is an illustrative sequence, not a recorded model trace:
+
+| Step | Stage | Simulated Gemini selection | Context and state |
 | --- | --- | --- | --- |
-| 1 | Analysis | Call `clean_data` | Parent supplies the cleaner's typed task |
-| 2 | Cleaner | Call `normalize_amounts` | Fresh child transcript; declared write access to sales |
-| 3 | Cleaner | Submit completion | Sales revision becomes 1; parent receives child output/revisions |
-| 4 | Analysis | Call `total_sales` | Exact Decimal total from current resource |
-| 5 | Analysis | Call `save_memory` | Save `revenue` with evidence from sales revision 1 |
-| 6 | Analysis | Submit completion | `required_memory` checks the finding is current |
+| 1 | Analysis | `clean_data(task="Normalize sales amount strings.")` | Parent supplies the cleaner's typed task |
+| 2 | Cleaner | `normalize_amounts()` | Fresh child transcript; declared write access to sales |
+| 3 | Cleaner | `complete_stage(text="Amounts normalized; all rows retained.")` | Sales revision becomes 1; parent receives child output/revisions |
+| 4 | Analysis | `total_sales()` | Exact Decimal total from the current resource |
+| 5 | Analysis | `save_memory(key="revenue", value="24.0", evidence_ids=[...])` | Finding references evidence from sales revision 1 |
+| 6 | Analysis | `complete_stage(text="Total sales are 24.0 across both rows.")` | `required_memory` checks the finding is current |
 
-The cleaner does not decide what the parent should conclude. Its instruction scope and tools are specific to preparation. Its execution still shares the run budget, resources, evidence store, and working memory.
+The cleaner's tools and instructions are specific to preparation. It shares the run budget, resources, evidence store, and working memory with analysis.
 
 ## Complete source
 
@@ -31,8 +33,15 @@ The cleaner does not decide what the parent should conclude. Its instruction sco
 --8<-- "examples/analysis_with_cleaner.py"
 ```
 
-## Inspect the returned result
+## Replay simulated Interactions responses
 
-`result.children[0]` contains the cleaner's full stage result. `result.usage.own.model_calls` is 4, `children.model_calls` is 2, and `total.model_calls` is 6. The synthetic inclusive total is 720 tokens.
+From a source checkout, run the same example without live API requests:
 
-`ContextPolicies(enabled=True, protected_fields=("task",))` validates the selected input field but does not enable compression by itself. This short example intentionally has neither offloading nor summarization enabled. Continue to [a long tool loop](long-tool-loop.md) to see both transformations.
+```bash
+uv sync --locked --all-extras
+uv run python scripts/simulate_gemini.py examples/analysis_with_cleaner.py
+```
+
+The real Google SDK and Stagify adapter process simulated HTTP responses. This fixture uses four parent requests and two child requests. At 100 input and 20 output fixture tokens per request, inclusive usage is 720 simulated tokens. Those counters are not an observed Gemini bill or a prediction for live runs.
+
+`result.children` contains the cleaner results. `ContextPolicies(enabled=True, protected_fields=("task",))` validates the input field but does not enable compression by itself. Continue to [a long tool loop](long-tool-loop.md) to see offloading and summarization.

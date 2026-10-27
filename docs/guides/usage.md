@@ -17,7 +17,7 @@ for child in result.children:
 | `total` | This invocation plus all descendants |
 | `by_purpose` | Inclusive provider-request usage grouped by purpose, such as `agent` or `summarize` |
 
-The cleaner tutorial uses six scripted requests: four in analysis and two in the cleaner. At 100 input and 20 output tokens per request, analysis totals 720 synthetic tokens: 480 own and 240 in children.
+The cleaner tutorial's simulated Gemini replay uses six HTTP response fixtures: four in analysis and two in the cleaner. At 100 input and 20 output tokens per request, analysis totals 720 simulated tokens: 480 own and 240 in children.
 
 ## Interpret the fields
 

@@ -33,13 +33,13 @@ Open the local address shown by MkDocs. Edit Markdown under `docs/` and navigati
 Before pushing:
 
 ```bash
-uv run --group docs python scripts/check_docs.py
+uv run --all-extras --group docs python scripts/check_docs.py
 uv run --group docs mkdocs build --strict
 ```
 
-The checker parses Python fences, requires reference coverage for public exports, and executes included offline examples. `examples/gemini.py` is parsed but excluded from execution because it needs credentials. Keep new credential-dependent examples explicitly identified in the checker. Model-specific behavior remains covered through provider tests, not paid calls in docs CI.
+The checker parses Python fences in the README and docs, requires reference coverage for public exports, and executes the included Gemini examples through `scripts/simulate_gemini.py`. That harness intercepts Interactions HTTP requests while keeping the real Google SDK and Stagify adapter in use. It verifies `gemini-3.8-flash`, stateless settings, and omitted sampling parameters. Add new Gemini scenarios explicitly to the harness and checker. No paid model calls run in docs CI.
 
-The API reference reads the checked-in source using mkdocstrings. Add prose for semantics, failure cases, and defaults that a signature alone cannot explain. Label incomplete snippets and synthetic usage clearly.
+The API reference reads the checked-in source using mkdocstrings. Add prose for semantics, failure cases, and defaults that a signature alone cannot explain. Label simulated responses, fixture usage, and incomplete snippets clearly.
 
 ## Hosting and releases
 

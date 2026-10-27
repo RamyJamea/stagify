@@ -1,6 +1,6 @@
 [project]
 name = "stagify"
-version = "0.1.1"
+version = "0.1.2"
 description = "A Python framework for staged tool workflows with explicit context policies."
 readme = "README.md"
 requires-python = ">=3.12"

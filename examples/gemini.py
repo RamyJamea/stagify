@@ -1,4 +1,4 @@
-"""Live Gemini Interactions example; requires environment credentials and model access."""
+"""A typed Gemini Interactions tool loop; requires GEMINI_API_KEY for a live run."""
 
 import asyncio
 import os
@@ -36,13 +36,16 @@ async def main():
         tools=[double],
     )
     async with GoogleProvider(
-        model=os.environ["GEMINI_MODEL"],
+        model="gemini-3.8-flash",
         api_key=os.environ["GEMINI_API_KEY"],
+        temperature=None,
+        top_p=None,
     ) as provider:
         runner = Runner(provider, limits=RunLimits(max_model_calls=8, timeout_seconds=60))
         result = await runner.run(stage, {"task": "What is double 21?"})
+        assert result.output.value == 42
         print(result.output.model_dump())
-        print(result.usage.total.model_dump())
+        print("Usage returned by Gemini:", result.usage.total.model_dump())
 
 
 if __name__ == "__main__":

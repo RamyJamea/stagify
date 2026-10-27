@@ -2,7 +2,7 @@
 
 ## `uv add stagify` cannot resolve a release
 
-Confirm Python is 3.12 or newer, and check whether your project uses a private index or a restricted mirror. Stagify 0.1.1 is on [public PyPI](https://pypi.org/project/stagify/0.1.1/). Use `uv add "stagify==0.1.1"` for an explicit version. A network/index failure is separate from an incompatible Python requirement.
+Confirm Python is 3.12 or newer, and check whether your project uses a private index or a restricted mirror. Stagify 0.1.2 is on [public PyPI](https://pypi.org/project/stagify/0.1.2/). Use `uv add "stagify==0.1.2"` for an explicit version. A network/index failure is separate from an incompatible Python requirement.
 
 ## Google SDK is missing
 

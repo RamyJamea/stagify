@@ -1,6 +1,7 @@
-"""A cleaner, twelve batch reads, and bounded context; all provider usage is synthetic."""
+"""A Gemini analysis loop with a cleaner, exact evidence, and optional context policies."""
 
 import asyncio
+import os
 from decimal import Decimal
 
 from pydantic import BaseModel, Field
@@ -8,19 +9,16 @@ from pydantic import BaseModel, Field
 from stagify import (
     ArtifactOffload,
     ContextPolicies,
-    ModelResponse,
     RunContext,
     RunLimits,
     Runner,
     Stage,
     Summarize,
-    TokenUsage,
-    ToolCall,
     ToolContext,
     tool,
 )
 from stagify.errors import ContextBudgetExceeded
-from stagify.testing import ScriptedProvider
+from stagify.providers.google import GoogleProvider
 
 
 class Task(BaseModel):
@@ -63,71 +61,34 @@ def compute_total(args: Empty, ctx: ToolContext):
     return {"total": str(sum((Decimal(row["amount"]) for row in rows), Decimal(0)))}
 
 
-def scripted_responder():
-    step = 0
-
-    def respond(request):
-        nonlocal step
-        if request.instructions.startswith("Summarize historical"):
-            payload = request.messages[0].content
-            ids = [
-                str(event["content"]["evidence_id"])
-                for event in payload["events_data"]
-                if isinstance(event["content"], dict) and event["content"].get("evidence_id")
-            ]
-            summary = (
-                payload["previous_summary_data"]
-                + " Historical observations; evidence IDs: "
-                + ", ".join(ids)
-                + ". Use current compute_total evidence for the final total."
-            )
-            return ModelResponse(text=summary, usage=TokenUsage(input_tokens=100, output_tokens=20))
-
-        tools = [message for message in request.messages if message.role == "tool"]
-        if request.instructions.startswith("Prepare"):
-            name, args = (
-                ("normalize", {})
-                if not tools
-                else ("complete_stage", {"text": "Normalized all 60 rows."})
-            )
-        else:
-            if step == 0:
-                name, args = "clean_data", {"task": "Normalize all amounts; retain rows."}
-            elif step <= 12:
-                name, args = "read_batch", {"offset": (step - 1) * 5}
-            elif step == 13:
-                name, args = "compute_total", {}
-            elif step == 14:
-                evidence = next(m.content for m in reversed(tools) if m.name == "compute_total")
-                name, args = (
-                    "save_memory",
-                    {
-                        "key": "revenue",
-                        "value": evidence["data"]["total"],
-                        "evidence_ids": [evidence["evidence_id"]],
-                    },
-                )
-            else:
-                name, args = "complete_stage", {"text": "Total sales: 1830.0 across 60 rows."}
-            step += 1
-        return ModelResponse(
-            calls=(ToolCall(f"call-{step}-{len(request.messages)}", name, args),),
-            usage=TokenUsage(input_tokens=100, output_tokens=20),
-        )
-
-    return respond
+def all_batches_inspected(output, context):
+    """Require current evidence covering every row, independently of the model's summary."""
+    seen = set()
+    offset = 0
+    while page := context.artifacts.index(offset=offset, limit=100):
+        for item in page:
+            evidence = context.artifacts.get(item["id"])
+            if (
+                evidence.tool_name == "read_batch"
+                and evidence.resource_versions == context.revisions
+            ):
+                start = evidence.arguments["offset"]
+                seen.update(range(start, start + len(evidence.data["rows"])))
+        offset += len(page)
+    return set(range(len(context.resource("sales")))) <= seen
 
 
 async def run_example(apply_policies):
     cleaner = Stage("cleaner", "Prepare the specified data.", Task, Report, tools=[normalize])
     stage = Stage(
         "analysis",
-        "Inspect batches, compute an exact total, and save a current revenue finding.",
+        "First call clean_data once. Inspect all 60 sales rows in pages of five at offsets 0, 5, 10, ..., 55. Retrieve exact evidence as needed. Then call compute_total, save its evidence as revenue, and submit complete_stage with the exact total. Preserve evidence IDs and progress in summaries.",
         Task,
         Report,
         tools=[cleaner.as_tool(name="clean_data"), read_batch, compute_total],
         memory=True,
         required_memory=("revenue",),
+        validate_completion=all_batches_inspected,
         context_policies=ContextPolicies(
             enabled=True,
             protected_fields=("task",),
@@ -150,28 +111,22 @@ async def run_example(apply_policies):
             ]
         }
     )
-    provider = ScriptedProvider(scripted_responder())
-    runner = Runner(provider, limits=RunLimits(max_input_tokens=6500, max_model_calls=60))
-    result = await runner.run(
-        stage,
-        {"task": "Inspect all 60 rows in pages, retain them, and report exact total sales."},
-        context=context,
-        apply_context_policies=apply_policies,
-    )
-    assert len(result.children) == 1
-    assert result.compactions
+    async with GoogleProvider(
+        model="gemini-3.8-flash",
+        api_key=os.environ["GEMINI_API_KEY"],
+        temperature=None,
+        top_p=None,
+    ) as provider:
+        runner = Runner(provider, limits=RunLimits(max_input_tokens=6500, max_model_calls=60))
+        result = await runner.run(
+            stage,
+            {"task": "Inspect all 60 rows in pages, retain them, and report exact total sales."},
+            context=context,
+            apply_context_policies=apply_policies,
+        )
+    assert result.children
     assert context.memory.entries["revenue"].value == "1830.0"
-    assert context.revisions["sales"] == 1
-    assert any(
-        message.name == "read_batch" and len(str(message.content)) > 1200
-        for message in result.history
-    )
-    assert any(
-        isinstance(message.content, dict) and message.content.get("offloaded")
-        for request in provider.requests
-        for message in request.messages
-    )
-    assert result.usage.by_purpose["summarize"].model_calls > 0
+    assert context.revisions["sales"] >= 1
     return result
 
 
@@ -180,8 +135,9 @@ async def main():
     print(result.output.text)
     print("Cleaner invocations:", len(result.children))
     print("Compactions:", len(result.compactions))
-    print("Summary calls:", result.usage.by_purpose["summarize"].model_calls)
-    print("Synthetic inclusive usage:", result.usage.total.model_dump())
+    summary_usage = result.usage.by_purpose.get("summarize")
+    print("Summary calls:", summary_usage.model_calls if summary_usage else 0)
+    print("Gemini inclusive usage:", result.usage.total.model_dump())
     try:
         await run_example(False)
     except ContextBudgetExceeded:

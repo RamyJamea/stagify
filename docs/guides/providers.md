@@ -1,16 +1,16 @@
 # Providers and Gemini
 
-Stages use normalized requests and responses. The bundled model adapter uses **Gemini Interactions**, including opaque step replay. It calls `client.aio.interactions.create` with `store=False` and `stream=False`.
+Stages use normalized requests and responses. The bundled adapter uses **Gemini Interactions**, including opaque step replay. It calls `client.aio.interactions.create` with `store=False` and `stream=False`.
 
-## Connect Gemini Interactions
+## Connect Gemini 3.8 Flash
 
 ```bash
 uv add "stagify[google]"
 ```
 
-Configure `GEMINI_API_KEY` and `GEMINI_MODEL` through your shell or secret manager. Choose a model identifier available to your account that supports Interactions. Stagify does not load `.env` files automatically.
+Configure `GEMINI_API_KEY` in your shell or secret manager. The examples explicitly select `gemini-3.8-flash`, a [stable model documented by Google](https://ai.google.dev/gemini-api/docs/models/gemini-3.8-flash/). Stagify does not load `.env` files automatically.
 
-Save and run this example:
+Save this example as `gemini.py`:
 
 ```python
 --8<-- "examples/gemini.py"
@@ -20,33 +20,26 @@ Save and run this example:
 uv run python gemini.py
 ```
 
-This example makes real provider calls. Model access, rate limits, and billing come from your Google account. The offline tutorials use scripted responses instead.
+This calls your Google account. Access, rate limits, and billing depend on that account. For an explicitly simulated run from the source checkout, use `uv run python scripts/simulate_gemini.py examples/gemini.py`. The [quickstart](../getting-started/quickstart.md) shows simulated Interactions responses and explains that mode.
 
 ## Configuration and lifecycle
 
-`GoogleProvider` defaults to `temperature=0.0`, `top_p=1.0`, and `thinking_level="low"`. Supply values supported by your selected model, or `None` to omit a setting. The SDK client connects lazily on the first request. The async context manager closes a client created by the adapter.
+The adapter's existing defaults are `temperature=0.0`, `top_p=1.0`, and `thinking_level="low"`. The Gemini 3.8 examples explicitly pass **`temperature=None, top_p=None`**, which omits these deprecated sampling parameters from requests. This follows [Google's model migration guidance](https://ai.google.dev/gemini-api/docs/latest-model); the shared adapter defaults remain unchanged for existing applications.
 
-You may pass `client=` to reuse a configured compatible Google SDK client. You then own its lifecycle. Supply `ProviderCapabilities` if you know your deployment's input/output limits and context window; the adapter does not discover them automatically.
+The SDK connects lazily on the first request. Its async context manager closes an owned client. Pass `client=` to reuse a configured compatible Google SDK client, whose lifecycle remains your responsibility. Supply `ProviderCapabilities` for your deployment's limits; the adapter does not discover model limits automatically.
 
-The adapter preserves response replay content, tool-call IDs, and thought signatures. It disables hidden SDK retries so the runner can account for retries. Its original provider implementation and regression coverage are documented in [design provenance](../EXTRACTION.md).
+The adapter preserves replay content, call IDs, and thought signatures and disables hidden SDK retries. See [design provenance](../EXTRACTION.md) for the extracted implementation and regression coverage.
+
+## Simulated Gemini responses
+
+`scripts/simulate_gemini.py` intercepts Interactions HTTP requests with `httpx.MockTransport`, sets a local simulation key, and returns explicit response fixtures. The same examples still construct `GoogleProvider(model="gemini-3.8-flash", ...)`; they do not replace it with a different provider.
+
+The harness checks the model name, stateless settings, omitted sampling parameters, and selected tool availability. Simulated usage is fixture data. No live model evaluation runs in CI.
 
 ## Implement a custom provider
 
-Implement the `Provider` protocol: a `name`, `capabilities`, and async `generate(ModelRequest) -> ModelResponse`.
+Implement the [Provider protocol](../reference/providers.md): `name`, `capabilities`, and async `generate(ModelRequest) -> ModelResponse`. A real adapter translates tool schemas, preserves matching call IDs, replays tool results and native steps, and normalizes usage. Unknown usage fields stay `None`.
 
-```python
-from stagify import ModelRequest, ModelResponse, ProviderCapabilities
+Raise `ProviderTransientError(retry_after=...)` for retryable failures, `ProviderAuthenticationError` for authentication failures, and `ProviderOutputError` for malformed responses. Only typed transient failures receive bounded retries. Unexpected exceptions are wrapped in `StageExecutionError`.
 
-class EchoProvider:
-    name = "echo"
-    capabilities = ProviderCapabilities(max_input_tokens=8000)
-
-    async def generate(self, request: ModelRequest) -> ModelResponse:
-        return ModelResponse(text=str(request.messages[0].content))
-```
-
-This minimal provider works for a text-only stage; it does not implement tool selection. A real adapter must translate tool schemas, preserve matching call IDs, replay assistant calls and tool results, and normalize usage. Return `None` for unknown usage fields instead of inventing zeros.
-
-Raise `ProviderTransientError(retry_after=...)` for retryable failures, `ProviderAuthenticationError` for authentication failures, and `ProviderOutputError` for malformed responses. Only typed transient failures receive the runner's bounded retries. Other provider failures propagate as typed errors or are wrapped in `StageExecutionError` for unexpected exceptions.
-
-`native` is adapter-specific replay data. Do not transfer Google replay payloads to another API without translation. See the [provider API](../reference/providers.md).
+`native` is adapter-specific replay data. Do not transfer Google replay payloads to a different API without translation.

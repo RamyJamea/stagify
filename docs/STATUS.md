@@ -1,7 +1,7 @@
 # Implementation status
 
-Version 0.1.1 is the current alpha release, with the same runtime as 0.1.0, published on
-[PyPI](https://pypi.org/project/stagify/0.1.1/). Install it with `uv add stagify`.
+Version 0.1.2 is the current alpha release, with the same runtime as 0.1.0, published on
+[PyPI](https://pypi.org/project/stagify/0.1.2/). Install it with `uv add stagify`.
 
 Implemented:
 
@@ -16,7 +16,7 @@ Implemented:
 - Usage own/children/total/by-purpose, unknown accounting, and failed result snapshots.
 - structlog events, verbose overrides, bounded retries, cancellation and typed errors.
 - Gemini Interactions through the extracted original provider and its regression tests.
-- ScriptedProvider examples and long-tool-loop scenario tests.
+- Gemini examples, simulated Interactions HTTP responses, and long-tool-loop scenario tests.
 - Build/install checks, CI matrix, and a manually dispatched Trusted Publishing workflow.
 
 Current limits:

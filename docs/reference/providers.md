@@ -18,7 +18,9 @@ Implement a `name`, `capabilities`, and async `generate`. All tool results must 
     options:
       members: [__init__, generate, aclose]
 
-`ScriptedProvider` accepts an iterable of responses/exceptions or a sync/async response callback. It records incoming requests in `requests`. Exhausting a response iterable raises `ProviderOutputError`. It makes no model calls itself.
+## Unit-test helper
+
+ScriptedProvider accepts an iterable of responses/exceptions or a sync/async response callback. It records incoming requests in `requests`. Exhausting a response iterable raises `ProviderOutputError`. It makes no model calls itself.
 
 ::: stagify.testing.ScriptedProvider
     options:

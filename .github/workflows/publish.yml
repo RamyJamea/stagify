@@ -1,0 +1,39 @@
+name: Publish to PyPI
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    name: Validate and publish
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment: pypi
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@d0d8abe699bfb85fec6de9f7adb5ae17292296ff # v6
+        with:
+          version: "0.9.7"
+          python-version: "3.12"
+      - name: Install runtime and test dependencies
+        run: uv sync --locked --all-extras
+      - name: Lint
+        run: uv run --locked ruff check src tests scripts examples
+      - name: Check formatting
+        run: uv run --locked ruff format --check src tests scripts examples
+      - name: Test
+        run: uv run --locked pytest -q
+      - name: Build distributions
+        run: uv build --no-sources
+      - name: Check isolated wheel installation
+        run: uv run --locked python scripts/check_distribution.py
+      - name: Publish using PyPI Trusted Publishing
+        run: uv publish --trusted-publishing always

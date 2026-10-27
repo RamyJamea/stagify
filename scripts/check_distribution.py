@@ -15,9 +15,7 @@ from pathlib import Path, PurePosixPath
 
 def check(dist: Path) -> None:
     root = Path(__file__).resolve().parents[1]
-    project = tomllib.loads((root / "pyproject.toml").read_text(encoding="utf-8"))[
-        "project"
-    ]
+    project = tomllib.loads((root / "pyproject.toml").read_text(encoding="utf-8"))["project"]
     expected = project["version"]
     wheels = list(dist.glob("*.whl"))
     sources = list(dist.glob("*.tar.gz"))
@@ -30,9 +28,7 @@ def check(dist: Path) -> None:
         if not required <= names:
             raise RuntimeError(f"Missing package files: {sorted(required - names)}")
         metadata_root = f"stagify-{expected}.dist-info/"
-        if any(
-            not name.startswith(("stagify/", metadata_root)) for name in names
-        ):
+        if any(not name.startswith(("stagify/", metadata_root)) for name in names):
             raise RuntimeError("Wheel contains files outside the package/metadata.")
         if not any(name.endswith("/LICENSE") for name in names):
             raise RuntimeError("Wheel is missing its license.")
@@ -42,12 +38,13 @@ def check(dist: Path) -> None:
         prefixes = {PurePosixPath(name).parts[0] for name in members}
         if len(prefixes) != 1:
             raise RuntimeError("Source archive must have one root directory.")
-        relative = {
-            str(PurePosixPath(*PurePosixPath(name).parts[1:])) for name in members
-        }
+        relative = {str(PurePosixPath(*PurePosixPath(name).parts[1:])) for name in members}
         required = {
-            "pyproject.toml", "README.md", "LICENSE",
-            "src/stagify/__init__.py", "src/stagify/py.typed",
+            "pyproject.toml",
+            "README.md",
+            "LICENSE",
+            "src/stagify/__init__.py",
+            "src/stagify/py.typed",
         }
         if not required <= relative:
             raise RuntimeError(f"Source archive is missing {sorted(required - relative)}")
@@ -67,9 +64,20 @@ def check(dist: Path) -> None:
     with tempfile.TemporaryDirectory(prefix="stagify-wheel-") as directory:
         subprocess.run(
             [
-                uv, "run", "--isolated", "--no-project", "--no-config",
-                "--python", sys.executable, "--with", str(wheel),
-                "--", "python", "-I", "-c", probe,
+                uv,
+                "run",
+                "--isolated",
+                "--no-project",
+                "--no-config",
+                "--python",
+                sys.executable,
+                "--with",
+                str(wheel),
+                "--",
+                "python",
+                "-I",
+                "-c",
+                probe,
             ],
             cwd=directory,
             check=True,

@@ -1,7 +1,8 @@
 # Stagify implementation plan
 
-Created 27 October 2026. Status: implementation plan and package foundation.
-The framework runtime has not been implemented.
+Created 27 October 2026. This document records the original roadmap.
+The initial runtime is now implemented; see docs/STATUS.md and README.md for the
+supported API and the features that remain future work.
 
 ## 1. Objective and scope
 

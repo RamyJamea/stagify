@@ -26,7 +26,17 @@ jobs:
           version: "0.9.7"
           python-version: ${{ matrix.python }}
       - name: Install the package from the lockfile
-        run: uv sync --locked
+        run: uv sync --locked --all-extras
+      - name: Lint and format checks
+        run: |
+          uv run --locked ruff check src tests scripts examples
+          uv run --locked ruff format --check src tests scripts examples
+      - name: Runtime and extracted provider tests
+        run: uv run --locked pytest -q
+      - name: Offline examples
+        run: |
+          uv run --locked python examples/basic.py
+          uv run --locked python examples/analysis_with_cleaner.py
       - name: Build distributions
         run: uv build --no-sources
       - name: Verify archives and isolated wheel installation

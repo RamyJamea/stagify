@@ -17,7 +17,7 @@ import httpx
 from google import genai
 
 ROOT = Path(__file__).resolve().parents[1]
-SCENARIOS = {"basic", "gemini", "analysis_with_cleaner", "long_tool_loop"}
+SCENARIOS = {"basic", "gemini", "analysis_with_cleaner", "analysis_workflow", "long_tool_loop"}
 MODEL = "gemini-3.8-flash"
 
 
@@ -65,6 +65,15 @@ class GeminiSimulation:
             )
             steps = [{"type": "model_output", "content": [{"type": "text", "text": text}]}]
             status = "completed"
+        elif self.scenario == "analysis_workflow" and instructions.startswith(("Explore", "Write")):
+            data = json.loads(payload["input"][0]["content"][0]["text"])
+            text = (
+                "Investigate the amount field across both exported rows."
+                if instructions.startswith("Explore")
+                else "# Sales report\n\n" + data["text"]
+            )
+            steps = [{"type": "model_output", "content": [{"type": "text", "text": text}]}]
+            status = "completed"
         else:
             name, arguments = self.select_call(instructions, results)
             assert name in {tool["name"] for tool in payload["tools"]}
@@ -98,14 +107,14 @@ class GeminiSimulation:
             return (
                 (
                     "normalize_amounts"
-                    if self.scenario == "analysis_with_cleaner"
+                    if self.scenario in {"analysis_with_cleaner", "analysis_workflow"}
                     else "normalize",
                     {},
                 )
                 if not results
                 else ("complete_stage", {"text": "Amounts normalized; all rows retained."})
             )
-        if self.scenario == "analysis_with_cleaner":
+        if self.scenario in {"analysis_with_cleaner", "analysis_workflow"}:
             if not results:
                 return "clean_data", {"task": "Normalize sales amount strings."}
             name, value = results[-1]
@@ -117,7 +126,11 @@ class GeminiSimulation:
                     "value": value["data"]["total"],
                     "evidence_ids": [value["evidence_id"]],
                 }
-            return "complete_stage", {"text": "Total sales are 24.0 across both rows."}
+            return "complete_stage", (
+                {}
+                if self.scenario == "analysis_workflow"
+                else {"text": "Total sales are 24.0 across both rows."}
+            )
 
         step = self.parent_step
         self.parent_step += 1
@@ -143,9 +156,7 @@ def main() -> None:
     args = parser.parse_args()
     example = args.example.resolve()
     if example.parent != ROOT / "examples" or example.stem not in SCENARIOS:
-        parser.error(
-            "Choose basic.py, gemini.py, analysis_with_cleaner.py, or long_tool_loop.py under examples/"
-        )
+        parser.error("Choose a supported example under examples/: " + ", ".join(sorted(SCENARIOS)))
     simulations: list[GeminiSimulation] = []
     http_clients: list[httpx.AsyncClient] = []
     original_client = genai.Client

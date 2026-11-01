@@ -1,5 +1,20 @@
 # Release notes
 
+## 0.2.0
+
+- Add Workflow/Step composition with shared budgets, deadline, stage invocation limits,
+  result bindings and inclusive usage accounting.
+- Add ContextField injection with preserve/replace/append updates, resource dependencies
+  and latest-context diagnostics.
+- Separate substage argument schemas from application-supplied stage context.
+- Add Completion policies for independent submission/output schemas, current-memory
+  requirements and explicitly selected partial-result conditions.
+- Add managed runner provider cleanup and aggregate workflow failure snapshots.
+- Add a native sales-analysis reference example and real-SDK simulated HTTP coverage.
+
+Existing single-stage calls and input mappers remain supported. Legacy partial-output
+callbacks now pass completion/state checks for both limit and timeout recovery.
+
 ## 0.1.3
 
 - Stages can select a provider and output-token limit, including substages.

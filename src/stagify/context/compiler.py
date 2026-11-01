@@ -108,7 +108,13 @@ class ContextCompiler:
             Message("user", {"working_state_data": entries, "resource_versions": self._versions()})
         ]
 
-    async def compile(self, request: ModelRequest, history: list[Message]) -> ModelRequest:
+    async def compile(
+        self,
+        request: ModelRequest,
+        history: list[Message],
+        *,
+        stage_input: dict[str, Any] | None = None,
+    ) -> ModelRequest:
         groups = [[self._project(m) for m in group] for group in batches(history)]
         if self.summary_versions is not None and self.summary_versions != self._versions():
             self.event("context.summary_invalidated", covered_batches=self.offset)
@@ -121,7 +127,7 @@ class ContextCompiler:
                 else []
             )
             messages = [
-                history[0],
+                history[0] if stage_input is None else replace(history[0], content=stage_input),
                 *checkpoint,
                 *self._memory(),
                 *(m for group in groups[offset:] for m in group),

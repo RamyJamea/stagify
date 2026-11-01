@@ -81,6 +81,7 @@ class RunLimits:
     max_model_retries: int = 2
     retry_delay: float = 0.1
     timeout_seconds: float | None = None
+    max_stage_invocations: int = 100
 
     def __post_init__(self) -> None:
         for name in (
@@ -89,6 +90,7 @@ class RunLimits:
             "max_input_tokens",
             "max_output_tokens",
             "max_depth",
+            "max_stage_invocations",
         ):
             if getattr(self, name) < 1:
                 raise ValueError(f"{name} must be positive")
@@ -117,5 +119,6 @@ class StageResult(BaseModel, Generic[T]):
     history: list[Message] = Field(default_factory=list)
     children: list[StageResult] = Field(default_factory=list)
     compactions: list[dict[str, Any]] = Field(default_factory=list)
+    context: dict[str, Any] = Field(default_factory=dict)
     resource_versions: dict[str, int] = Field(default_factory=dict)
     evidence_ids: list[str] = Field(default_factory=list)

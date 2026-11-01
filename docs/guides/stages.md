@@ -49,7 +49,7 @@ Pass that function as `validate_completion=has_conclusion`. It receives `(output
 
 ## Handoff and reuse
 
-For a fixed sequence, call `runner.run` twice and pass the first result's output into the next stage's input. Reuse a `RunContext` sequentially to retain resources, artifacts, and memory; each root call starts a new run and usage ledger. A single context cannot serve concurrent root runs.
+For a fixed sequence with shared limits, use a [Workflow](workflows.md). Each Step binds input from earlier outputs and the workflow retains one ledger. Separate calls to `runner.run(stage, ...)` remain supported; reusing a RunContext shares resources and memory while each call starts a new ledger. A single context cannot serve concurrent root runs.
 
 For model-selected delegation, use [a stage as a tool](substages.md). Stage definitions can be reused; invocation histories and IDs are created per execution.
 
@@ -60,7 +60,7 @@ See [the stage API](../reference/runtime.md) for every constructor option.
 
 `Stage(provider=...)` selects a provider for that stage, including when invoked
 through `as_tool()`. Otherwise the runner's provider is used. The application
-owns and closes stage-specific providers. `Stage(max_output_tokens=...)` bounds
+owns stage-specific providers; a managed `async with Runner(...)` can close all used providers. `Stage(max_output_tokens=...)` bounds
 that stage's response together with the runner and provider limits.
 
 `Runner(min_interval_seconds=...)` waits before every provider attempt, including

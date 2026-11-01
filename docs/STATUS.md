@@ -1,9 +1,15 @@
 # Implementation status
 
-Version 0.1.2 is the current alpha release, with the same runtime as 0.1.0, published on
-[PyPI](https://pypi.org/project/stagify/0.1.2/). Install it with `uv add stagify`.
+This source targets the 0.2.0 alpha release. Install the latest published version
+with `uv add stagify`; new workflow/context APIs require 0.2.0 or this source checkout.
 
 Implemented:
+
+- Deterministic Workflow/Step composition with typed boundaries and one shared run ledger.
+- Separate model-facing substage arguments and application-injected context.
+- Preserve/replace/append field rules, declared dependencies and validated refreshes.
+- State-derived completion schemas and precise local partial-result policies.
+- Managed runner cleanup for default and stage-specific providers.
 
 - Typed tools/stages, input validation, structured completion, and explicit handoffs.
 - One provider-independent runner, synchronous/asynchronous tool execution.
@@ -30,6 +36,10 @@ Current limits:
   automatic LLM extraction are not implemented.
 - All selected stage input values are exact. Per-field lossy transformation of stage
   inputs is not implemented.
+- Injected context fields use unaliased Python names. Append sources supply deltas;
+  deduplication, stream cursors and cross-process delivery remain application concerns.
+- Workflows are sequential; conditional graphs, parallel steps and durable execution
+  are not implemented.
 - Resource scope is declared by trusted application tools; it cannot sandbox Python.
 - Source references and revisions do not establish semantic truth of model-written claims.
 - Threaded synchronous tools may continue externally after cancellation; reconcile

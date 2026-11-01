@@ -194,6 +194,22 @@ class WorkingState:
                     "A required working entry is missing or stale", details={"key": key}
                 )
 
+    def values(
+        self,
+        versions: dict[str, int],
+        keys: tuple[str, ...] | None = None,
+        *,
+        require_current: bool = False,
+    ) -> dict[str, Any]:
+        """Return current values, optionally rejecting any missing or stale selection."""
+        if require_current:
+            self.require_current(versions, keys)
+        return {
+            item["key"]: item["value"]
+            for item in self.snapshot(versions, keys)
+            if item["status"] == "current"
+        }
+
 
 class RunContext:
     def __init__(
@@ -206,6 +222,7 @@ class RunContext:
         self.memory = WorkingState()
         self.results: dict[str, StageResult[Any]] = {}
         self.last_result: StageResult[Any] | None = None
+        self.last_workflow_result: Any = None
         self._locks: dict[str, asyncio.Lock] = {}
         self._active = False
 

@@ -17,6 +17,7 @@ from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
 from .context import ContextPolicies
 from .context.compiler import ContextCompiler, estimate_tokens
+from .context.fields import ContextView
 from .contracts import (
     ErrorInfo,
     Message,
@@ -51,6 +52,7 @@ from .stages import Stage, StageTool
 from .state import RunContext, ToolContext
 from .tools import Tool
 from .usage import UsageLedger
+from .workflow import Workflow, WorkflowContext, WorkflowResult
 
 
 class _Args(BaseModel):
@@ -90,6 +92,7 @@ class _Run:
     policies_override: bool | None
     verbose_override: bool | None
     deadline: float | None
+    invocations: int = 0
 
 
 class Runner:
@@ -111,20 +114,49 @@ class Runner:
         self.context_policies = context_policies or ContextPolicies()
         self.verbose = verbose
         self.logger = logger if logger is not None else structlog.get_logger("stagify")
+        self._providers = {id(provider): provider}
+        self._active_runs = 0
+
+    async def __aenter__(self) -> Runner:
+        return self
+
+    async def __aexit__(self, exc_type: Any, exc: Any, traceback: Any) -> None:
+        try:
+            await self.aclose()
+        except Exception:
+            if exc is None:
+                raise
+            self.logger.warning("provider.cleanup_failed")
+
+    async def aclose(self) -> None:
+        """Close all providers used by this runner once; never mask a run failure."""
+        if self._active_runs:
+            raise ConfigurationError("Cannot close a runner with active runs")
+        providers, self._providers = self._providers, {}
+        failures = []
+        for provider in providers.values():
+            if hasattr(provider, "aclose"):
+                try:
+                    await provider.aclose()
+                except Exception as exc:
+                    failures.append(exc)
+        if failures:
+            raise failures[0]
 
     async def run(
         self,
-        stage: Stage[Any, Any],
+        stage: Stage[Any, Any] | Workflow,
         stage_input: BaseModel | dict[str, Any],
         *,
         context: RunContext | None = None,
         apply_context_policies: bool | None = None,
         verbose: bool | None = None,
-    ) -> StageResult[Any]:
+    ) -> StageResult[Any] | WorkflowResult:
         shared = context if context is not None else RunContext()
         if shared._active:
             raise ConfigurationError("A RunContext cannot be used by concurrent root runs")
         shared._active = True
+        self._active_runs += 1
         start = time.monotonic()
         run = _Run(
             uuid4().hex,
@@ -137,7 +169,11 @@ class Runner:
             else None,
         )
         try:
-            result = await self._stage(run, stage, stage_input, (), (), None, None)
+            result = (
+                await self._workflow(run, stage, stage_input)
+                if isinstance(stage, Workflow)
+                else await self._stage(run, stage, stage_input, (), (), None, None)
+            )
             self.logger.info(
                 "run.completed",
                 run_id=run.id,
@@ -159,6 +195,95 @@ class Runner:
             raise
         finally:
             shared._active = False
+            self._active_runs -= 1
+
+    async def _workflow(
+        self,
+        run: _Run,
+        workflow: Workflow,
+        value: BaseModel | dict[str, Any],
+    ) -> WorkflowResult:
+        results: dict[str, StageResult[Any]] = {}
+
+        def snapshot(
+            status: str, output: Any = None, error: StagifyError | None = None
+        ) -> WorkflowResult:
+            results.update(
+                {
+                    item.stage_name: item
+                    for item in run.context.results.values()
+                    if item.parent_invocation_id == run.id
+                }
+            )
+            result = WorkflowResult(
+                status=status,
+                output=output,
+                run_id=run.id,
+                workflow_name=workflow.name,
+                steps=dict(results),
+                usage=run.ledger.for_stage(run.id),
+                error=ErrorInfo(code=error.code, message=str(error), details=error.details)
+                if error
+                else None,
+            )
+            run.context.last_workflow_result = result
+            return result
+
+        try:
+            try:
+                parsed = workflow.input_model.model_validate(value)
+            except (ValidationError, ValueError, TypeError) as exc:
+                raise ContextValidationError(
+                    "Workflow input does not satisfy its input_model"
+                ) from exc
+            state = WorkflowContext(parsed, results, run.context)
+            async with asyncio.timeout_at(run.deadline):
+                for step in workflow.steps:
+                    payload = (
+                        await self._maybe_await(step.input(state))
+                        if step.input is not None
+                        else parsed.model_dump(mode="json")
+                    )
+                    try:
+                        results[step.stage.name] = await self._stage(
+                            run,
+                            step.stage,
+                            payload,
+                            (run.id,),
+                            (),
+                            None,
+                            None,
+                        )
+                    except StagifyError as exc:
+                        if exc.result is not None:
+                            results[step.stage.name] = exc.result
+                        raise
+                output = (
+                    await self._maybe_await(workflow.output(state))
+                    if workflow.output is not None
+                    else results[workflow.steps[-1].stage.name].output
+                )
+            status = (
+                "partial" if any(r.status == "partial" for r in results.values()) else "completed"
+            )
+            return snapshot(status, output)
+        except asyncio.CancelledError:
+            snapshot("cancelled")
+            raise
+        except TimeoutError as exc:
+            error = StageTimeoutError("Workflow deadline exceeded")
+            error.workflow_result = snapshot("failed", error=error)
+            raise error from exc
+        except StagifyError as exc:
+            exc.workflow_result = snapshot("failed", error=exc)
+            raise
+        except Exception as exc:
+            error = StageExecutionError(
+                "Workflow binding failed",
+                details={"exception_type": type(exc).__name__},
+            )
+            error.workflow_result = snapshot("failed", error=error)
+            raise error from exc
 
     async def _stage(
         self,
@@ -171,10 +296,12 @@ class Runner:
         inherited_verbose: bool | None,
     ) -> StageResult[Any]:
         provider = stage.provider if stage.provider is not None else self.provider
+        self._providers[id(provider)] = provider
         invocation = uuid4().hex
         parent = ancestors[-1] if ancestors else None
         history: list[Message] = []
         compiler: ContextCompiler | None = None
+        payload: dict[str, Any] = {}
         verbosity = (
             run.verbose_override
             if run.verbose_override is not None
@@ -221,6 +348,7 @@ class Runner:
                     e.id for e in run.context.artifacts._items.values() if e.stage_id == invocation
                 ],
                 compactions=list(compiler.receipts) if compiler is not None else [],
+                context=payload,
             )
             run.context.results[invocation] = result
             if parent is None:
@@ -236,19 +364,47 @@ class Runner:
 
         resources = frozenset()
         stage_context: ToolContext | None = None
+
+        async def fail(error: StagifyError) -> StageResult[Any]:
+            policy = stage.completion
+            explicit = policy is not None and type(error) in policy.partial_on
+            legacy = (
+                policy is None
+                and stage.allow_partial
+                and isinstance(error, (RunLimitExceeded, StageTimeoutError))
+            )
+            if explicit or legacy:
+                callback = policy.partial_output if explicit else stage.partial_output
+                output = None
+                if callback is not None and stage_context is not None:
+                    try:
+                        output = await self._maybe_await(callback(stage_context))
+                        if stage.output_model is not None:
+                            output = stage.output_model.model_validate(output)
+                        await self._validate_completion(stage, output, stage_context)
+                    except asyncio.CancelledError:
+                        finish("cancelled")
+                        raise
+                    except Exception as exc:
+                        failure = StageCompletionError(
+                            "Partial output did not satisfy its contract"
+                        )
+                        failure.result = finish("failed", error=failure)
+                        raise failure from exc
+                return finish("partial", output, error)
+            error.result = finish("failed", error=error)
+            raise error
+
         try:
-            if len(ancestors) >= self.limits.max_depth or id(stage) in stage_path:
+            if len(stage_path) >= self.limits.max_depth or id(stage) in stage_path:
                 raise ConfigurationError("Substage depth exceeded or recursive stage cycle")
-            try:
-                parsed = stage.input_model.model_validate(value)
-                payload = parsed.model_dump(
-                    mode="json",
-                    include=set(stage.context_fields) if stage.context_fields is not None else None,
-                )
-            except (ValidationError, ValueError, TypeError) as exc:
-                raise ContextValidationError(
-                    "Stage input does not satisfy its input_model"
-                ) from exc
+            deadline = run.deadline
+            if stage.timeout_seconds is not None:
+                local_deadline = asyncio.get_running_loop().time() + stage.timeout_seconds
+                deadline = local_deadline if deadline is None else min(deadline, local_deadline)
+            if run.invocations >= self.limits.max_stage_invocations:
+                raise RunLimitExceeded("Run stage-invocation limit reached")
+            run.invocations += 1
             requested = frozenset().union(*(t.reads | t.writes for t in stage.tools))
             resources = stage.resources if stage.resources is not None else requested
             resources = frozenset(resources)
@@ -263,7 +419,25 @@ class Runner:
                 allowed_resources=resources,
                 writable_resources=frozenset(),
             )
+            view = ContextView(
+                stage.input_model,
+                value,
+                stage.context,
+                stage_context,
+                stage.context_fields,
+            )
+            async with asyncio.timeout_at(deadline):
+                payload = await view.refresh()
             policies = stage.context_policies or self.context_policies
+            protected = tuple(
+                dict.fromkeys(
+                    (
+                        *policies.protected_fields,
+                        *(name for name, field in stage.context.items() if field.protected),
+                    )
+                )
+            )
+            policies = replace(policies, protected_fields=protected)
             enabled = policies.enabled if run.policies_override is None else run.policies_override
             if not set(policies.protected_fields) <= set(payload):
                 raise ConfigurationError(
@@ -278,7 +452,12 @@ class Runner:
                     ToolSpec(
                         "complete_stage",
                         "Submit the validated stage output alone.",
-                        stage.output_model.model_json_schema(),
+                        (
+                            stage.completion.arguments
+                            if stage.completion is not None
+                            and stage.completion.arguments is not None
+                            else stage.output_model
+                        ).model_json_schema(),
                     ),
                 )
             instructions = stage.instructions
@@ -396,17 +575,17 @@ class Runner:
                     if isinstance(t, Tool) and t.projection is not None
                 },
             )
-            deadline = run.deadline
-            if stage.timeout_seconds is not None:
-                local_deadline = asyncio.get_running_loop().time() + stage.timeout_seconds
-                deadline = local_deadline if deadline is None else min(deadline, local_deadline)
             event("stage.started", policies_enabled=enabled)
             repairs = 0
             seen_call_ids: set[str] = set()
             async with asyncio.timeout_at(deadline):
                 while True:
+                    if history[1:]:
+                        payload = await view.refresh()
                     request = await compiler.compile(
-                        ModelRequest(instructions, (), specs, output_limit), history
+                        ModelRequest(instructions, (), specs, output_limit),
+                        history,
+                        stage_input=payload,
                     )
                     response = await invoke(request)
                     calls = response.calls
@@ -444,12 +623,27 @@ class Runner:
                         run.ledger.start_tool(invocation, ancestors)
                         if call.name == "complete_stage":
                             try:
-                                output = stage.output_model.model_validate(call.arguments)
+                                policy = stage.completion
+                                submission_model = (
+                                    policy.arguments
+                                    if policy is not None and policy.arguments is not None
+                                    else stage.output_model
+                                )
+                                submission = submission_model.model_validate(call.arguments)
+                                output = (
+                                    await self._maybe_await(
+                                        policy.output(submission, stage_context)
+                                    )
+                                    if policy is not None and policy.output is not None
+                                    else submission
+                                )
+                                output = stage.output_model.model_validate(output)
                                 await self._validate_completion(stage, output, stage_context)
                             except (
                                 ValidationError,
                                 StageCompletionError,
                                 StateConflictError,
+                                ToolInputError,
                             ) as exc:
                                 error = StageCompletionError(
                                     "Completion did not satisfy the output/state contract"
@@ -554,34 +748,13 @@ class Runner:
                         event("tool.completed", tool_name=call.name, tool_call_id=call.call_id)
         except TimeoutError as exc:
             error = StageTimeoutError("Stage deadline exceeded")
-            result = finish("partial" if stage.allow_partial else "failed", error=error)
-            error.result = result
-            if stage.allow_partial:
-                return result
-            raise error from exc
+            error.__cause__ = exc
+            return await fail(error)
         except asyncio.CancelledError:
             finish("cancelled")
             raise
         except StagifyError as exc:
-            if isinstance(exc, RunLimitExceeded) and stage.allow_partial:
-                output = None
-                if stage.partial_output is not None and stage_context is not None:
-                    try:
-                        output = await self._maybe_await(stage.partial_output(stage_context))
-                        if stage.output_model is not None:
-                            output = stage.output_model.model_validate(output)
-                    except asyncio.CancelledError:
-                        finish("cancelled")
-                        raise
-                    except Exception as partial_error:
-                        failure = StageCompletionError(
-                            "Partial output did not satisfy its contract"
-                        )
-                        failure.result = finish("failed", error=failure)
-                        raise failure from partial_error
-                return finish("partial", output, exc)
-            exc.result = finish("failed", error=exc)
-            raise
+            return await fail(exc)
         except Exception as exc:
             error = StageExecutionError(
                 "Unexpected stage failure", details={"exception_type": type(exc).__name__}
@@ -730,6 +903,8 @@ class Runner:
     async def _validate_completion(
         self, stage: Stage[Any, Any], output: Any, context: ToolContext
     ) -> None:
+        if stage.completion is not None and stage.completion.required_memory:
+            context.memory.require_current(context.revisions, stage.completion.required_memory)
         if stage.required_memory:
             context.memory.require_current(context._shared.revisions, stage.required_memory)
         if stage.validate_completion is not None:

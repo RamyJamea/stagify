@@ -15,6 +15,7 @@ ROOT = Path(__file__).resolve().parents[1]
 GEMINI_EXAMPLES = {
     "examples/gemini.py",
     "examples/analysis_with_cleaner.py",
+    "examples/analysis_workflow.py",
     "examples/long_tool_loop.py",
 }
 SNIPPET = re.compile(r'^\s*--8<-- "([^"]+)"\s*$', re.MULTILINE)

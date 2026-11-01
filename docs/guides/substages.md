@@ -50,4 +50,8 @@ Choose `on_error="return"` to give the parent a structured failure response and 
 
 `input_mapper` can adapt validated tool arguments before the child starts. It receives `(parsed_args, parent_tool_context)` and may be async. Its output must satisfy the child's input model.
 
+Use `as_tool(arguments=Task)` to expose only the model-supplied task while
+the child injects its catalog and revision through [ContextField](context-fields.md).
+Injected fields cannot overlap the tool's argument fields.
+
 Recursive stage cycles and excessive depth are rejected. Design explicit handoffs instead of making a stage call itself.

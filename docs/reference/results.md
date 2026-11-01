@@ -1,5 +1,15 @@
 # Results and usage
 
+## WorkflowResult
+
+`Runner.run(workflow, ...)` returns one workflow result with `steps`, overall
+`status`, final `output` and inclusive `usage`. Errors retain their original type
+and expose this snapshot as `error.workflow_result`.
+
+::: stagify.WorkflowResult
+    options:
+      members: false
+
 ## StageResult
 
 | Field | Meaning |
@@ -11,6 +21,7 @@
 | `usage` | Own, descendant, inclusive, and purpose-attributed counters |
 | `error` | Optional `code`, `message`, and `details` |
 | `history` | Full canonical local transcript |
+| `context` | Latest committed selected input, including refreshed injected fields |
 | `children` | Direct child results, each retaining its descendants |
 | `compactions` | Accepted summary batch ranges and estimated size changes |
 | `resource_versions` | Shared resource revisions captured when the invocation ended |

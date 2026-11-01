@@ -1,6 +1,8 @@
 """Staged tool workflows with explicit, optional context management."""
 
+from .completion import Completion
 from .context import ArtifactOffload, ContextPolicies, Summarize
+from .context.fields import ContextField
 from .contracts import (
     Message,
     ModelRequest,
@@ -18,10 +20,13 @@ from .stages import Stage, StageTool
 from .state import ArtifactStore, RunContext, ToolContext, WorkingState
 from .tools import Tool, tool
 from .usage import StageUsage, TokenUsage, UsageTotals
+from .workflow import Step, Workflow, WorkflowContext, WorkflowResult
 
 __all__ = [
     "ArtifactOffload",
     "ArtifactStore",
+    "Completion",
+    "ContextField",
     "ContextPolicies",
     "Message",
     "ModelRequest",
@@ -35,6 +40,7 @@ __all__ = [
     "StageResult",
     "StageTool",
     "StageUsage",
+    "Step",
     "StagifyError",
     "Summarize",
     "TokenUsage",
@@ -44,5 +50,8 @@ __all__ = [
     "ToolSpec",
     "UsageTotals",
     "WorkingState",
+    "Workflow",
+    "WorkflowContext",
+    "WorkflowResult",
     "tool",
 ]

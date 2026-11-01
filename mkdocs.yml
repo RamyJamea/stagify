@@ -82,12 +82,16 @@ nav:
       - Your first stage: getting-started/quickstart.md
       - Core concepts: getting-started/concepts.md
   - Guides:
+      - Compose a workflow: guides/workflows.md
+      - Inject stage context: guides/context-fields.md
+      - Completion policies: guides/completion.md
       - Stages and context contracts: guides/stages.md
       - Define tools: guides/tools.md
       - Stages as tools: guides/substages.md
       - Context policies: guides/context-management.md
       - Evidence and working memory: guides/evidence-memory.md
   - Tutorials:
+      - A native analysis harness: tutorials/analysis-workflow.md
       - Analysis with a cleaner: tutorials/analysis-with-cleaner.md
       - A long tool loop: tutorials/long-tool-loop.md
   - Operations:

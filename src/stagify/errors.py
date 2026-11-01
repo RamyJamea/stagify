@@ -12,6 +12,7 @@ class StagifyError(Exception):
         super().__init__(message)
         self.details = details or {}
         self.result: Any = None
+        self.workflow_result: Any = None
 
 
 class ConfigurationError(StagifyError):

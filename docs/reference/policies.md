@@ -22,6 +22,9 @@ Fractions must satisfy `0 < target_fraction < trigger_fraction <= 1`. `recent_ba
 
 ## RunLimits
 
+`max_stage_invocations` caps all attempted stage invocations in a run, including
+workflow steps and children. A workflow adds no model-stage depth of its own.
+
 Call limits apply to the whole run tree. Input/output allocations apply per provider request. `max_model_retries=2` permits up to three attempts for an individual request, subject to all call caps. Root stage depth is counted in the depth limit; the default 5 allows the root plus four child levels. Positive allocations, nonnegative retry settings, and a positive optional timeout are required.
 
 ::: stagify.RunLimits

@@ -19,6 +19,7 @@ Import specialized errors from `stagify.errors`. `StagifyError` is also exported
 | `StageCompletionError` | `invalid_stage_completion` |
 | `StateConflictError` | `state_conflict` |
 | `RunLimitExceeded` | `run_limit_exceeded` |
+| `StageModelLimitExceeded` | `stage_model_limit_exceeded` |
 | `StageTimeoutError` | `stage_timeout` |
 | `SubstageError` | `substage_error` |
 

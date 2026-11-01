@@ -1,14 +1,30 @@
 # Runner, stages, and tools
 
-These signatures are generated from the checked-in Python source. Guides explain behavior; this reference lists the actual types and defaults for the current `0.1.2` API.
+These signatures are generated from the checked-in Python source. Guides explain behavior; this reference lists the actual types and defaults.
+
+## Workflow composition
+
+::: stagify.Workflow
+
+::: stagify.Step
+
+::: stagify.WorkflowContext
+
+See [workflow composition](../guides/workflows.md) for shared limits, bindings, results and provider lifecycle.
+
+## Injected context and completion
+
+::: stagify.ContextField
+
+::: stagify.Completion
 
 ## Runner
 
-Pass a provider, optional `RunLimits`, policy defaults, verbosity, and a compatible bound logger. `run` accepts a stage, a Pydantic instance or dictionary, and optional shared context and run overrides. It returns `StageResult`; typed failures usually attach a result to the exception.
+Pass a provider, optional `RunLimits`, policy defaults, verbosity, and a compatible bound logger. `run` accepts a stage or workflow, a Pydantic instance or dictionary, and optional shared context and run overrides. It returns `StageResult` or `WorkflowResult`; typed failures retain stage and workflow snapshots on the exception.
 
 ::: stagify.Runner
     options:
-      members: [__init__, run]
+      members: [__init__, run, aclose]
 
 ## Stage
 
@@ -26,6 +42,8 @@ Pass a provider, optional `RunLimits`, policy defaults, verbosity, and a compati
 | `allow_partial`, `partial_output` | Partial results on limits/timeouts; fallback callback is used for call limits |
 | `resources` | Explicit resource grant; defaults to tool requirements |
 | `verbose` | Optional verbosity override |
+| `context` | Application-owned ContextField sources, update rules and dependencies |
+| `completion` | Submission schema, state-derived output and explicit partial policy |
 
 ::: stagify.Stage
     options:

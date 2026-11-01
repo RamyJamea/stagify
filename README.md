@@ -13,7 +13,7 @@ using optional artifact offloading and historical summaries.
 **[Documentation](https://ramyjamea.github.io/stagify/)** ·
 [Quickstart](https://ramyjamea.github.io/stagify/getting-started/quickstart/) ·
 [PyPI](https://pypi.org/project/stagify/) ·
-[Examples](https://github.com/RamyJamea/stagify/tree/v0.1.2/examples)
+[Examples](https://github.com/RamyJamea/stagify/tree/main/examples)
 
 ## Install
 
@@ -112,6 +112,42 @@ See the [complete quickstart](https://ramyjamea.github.io/stagify/getting-starte
 
 ## Build a workflow
 
+Compose stages without writing another execution loop:
+
+```python
+from pydantic import BaseModel
+from stagify import Runner, Stage, Step, Workflow
+
+class Task(BaseModel):
+    task: str
+
+explore = Stage("explore", "Identify the investigation scope.", Task)
+write = Stage("write", "Write from the supplied observations.", Task)
+report = Workflow("report", Task, (
+    Step(explore),
+    Step(write, input=lambda state: {"task": state.output("explore")}),
+))
+
+async def generate_report(provider, question):
+    async with Runner(provider) as runner:
+        result = await runner.run(report, {"task": question})
+    return result.output, result.usage.total
+```
+
+All steps and children share one run budget, deadline and usage ledger.
+`ContextField` injects application-owned values with preserve/replace/append
+rules. `as_tool(arguments=...)` exposes only model-supplied child arguments.
+`Completion` separates submission from state-derived output and permits precise
+partial-result policies.
+
+The [native analysis harness](https://ramyjamea.github.io/stagify/tutorials/analysis-workflow/)
+combines exploration, delegated cleaning, evidence-backed memory and Markdown
+writing. Run it offline through the real Gemini SDK:
+
+```bash
+uv run python scripts/simulate_gemini.py examples/analysis_workflow.py
+```
+
 - **Stages and substages:** typed input/output contracts, isolated transcripts,
   and `stage.as_tool()` for model-selected delegation.
 - **Optional context policies:** preserve selected input fields, offload large
@@ -129,7 +165,7 @@ Both use Gemini Interactions and support an explicitly simulated HTTP replay for
 
 ## Current scope
 
-Version 0.1.2 is an alpha release. State is in memory, request token sizing is
+Version 0.2.0 is an alpha release. State is in memory, request token sizing is
 estimated, and only the Gemini Interactions model adapter ships. Summaries can
 lose information; evidence references do not establish semantic truth. See the
 [supported features and limitations](https://ramyjamea.github.io/stagify/STATUS/) and

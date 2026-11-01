@@ -26,6 +26,7 @@ limits = RunLimits(
     max_input_tokens=24000,
     max_output_tokens=4096,
     max_depth=4,
+    max_stage_invocations=100,
     max_model_retries=2,
     retry_delay=0.1,
     timeout_seconds=120,
@@ -52,7 +53,14 @@ Already executed tools are not automatically repeated by provider retries. This 
 
 ## Partial output
 
-`Stage(allow_partial=True)` permits partial results on call-limit exhaustion or timeout. For `RunLimitExceeded`, `partial_output(context)` can supply a fallback; an output model validates that fallback. An invalid fallback raises `StageCompletionError`. Timeout partial results contain no fallback output in 0.1.0. Other failure classes still raise.
+For new stages, prefer [Completion](completion.md) with explicit `partial_on`
+types and a state-derived partial output. Provider failures, invalid completions,
+child failures and global limits remain fatal.
+
+Legacy `Stage(allow_partial=True)` permits partial results on call-limit exhaustion
+or timeout. `partial_output(context)` can supply a fallback; its output schema
+and completion/state checks must pass. An invalid fallback raises
+`StageCompletionError`. Other failure classes still raise.
 
 Always inspect `result.status` before treating output as complete.
 
